@@ -71,6 +71,7 @@ resource "aws_lambda_function" "rabbitmq_metrics" {
       rabbitMqUrl = "http://${aws_lb.rabbitmq_nlb.dns_name}:15672"
       secretArn   = aws_secretsmanager_secret.rabbitmq_monitoring_credentials.arn
       namespace   = "RabbitMQ"
+      stage       = var.stage
     }
   }
 

@@ -39,3 +39,7 @@ variable "rabbitmq_monitoring_username" {
 variable "vhost" {
   default = "rabbitmq_vhost"
 }
+
+variable "stage" {
+  default = "dev"
+}
