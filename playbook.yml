@@ -1,0 +1,114 @@
+---
+- name: Setup RabbitMQ
+  hosts: default
+  become: true
+  vars:
+    rabbitmq_version: "{{ lookup('env', 'RABBITMQ_VERSION') }}"
+
+  pre_tasks:
+    - name: Fail if rabbitmq_version is not set
+      ansible.builtin.fail:
+        msg: "rabbitmq_version must be set via RABBITMQ_VERSION environment variable."
+      when: rabbitmq_version is undefined or rabbitmq_version == ""
+
+  tasks:
+    - name: Import RabbitMQ Repo Keys
+      ansible.builtin.rpm_key:
+        key: "{{ item }}"
+        state: present
+      loop:
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+        - https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
+      tags: keys
+
+    - name: Setup RabbitMQ Repo
+      ansible.builtin.copy:
+        src: ./config-files/rabbitmq.repo
+        dest: /etc/yum.repos.d/rabbitmq.repo
+        owner: root
+        group: root
+        mode: '0644'
+      tags: repo
+
+    - name: Update Repositories
+      ansible.builtin.dnf:
+        update_cache: true
+      tags: update
+
+    - name: Upgrade all packages
+      ansible.builtin.dnf:
+        name: '*'
+        state: latest
+      tags: upgrade
+
+    - name: Install RabbitMQ Supporting Packages
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - socat
+        - logrotate
+      tags: packages
+
+    - name: Install RabbitMQ
+      ansible.builtin.dnf:
+        name: "{{ item }}"
+        state: present
+      with_items:
+        - erlang
+        - "rabbitmq-server-{{ rabbitmq_version }}"
+      tags: rabbitmq
+
+    - name: Setup RabbitMQ Config
+      ansible.builtin.copy:
+        src: ./config-files/rabbitmq.conf
+        dest: /etc/rabbitmq/rabbitmq.conf
+        owner: root
+        group: root
+        mode: '0644'
+      tags: config
+
+    - name: Ensure RabbitMQ plugin directory exists
+      ansible.builtin.file:
+        path: "/usr/lib/rabbitmq/lib/rabbitmq_server-{{ rabbitmq_version }}/plugins"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      tags: plugins
+
+    - name: Download RabbitMQ Delayed Message Exchange plugin
+      ansible.builtin.get_url:
+        url: "https://github.com/rabbitmq/rabbitmq-delayed-message-exchange/releases/download/v3.12.0/rabbitmq_delayed_message_exchange-3.12.0.ez"
+        dest: "/usr/lib/rabbitmq/lib/rabbitmq_server-{{ rabbitmq_version }}/plugins/"
+      tags: plugins
+
+    - name: Enable Delayed Message Exchange plugin
+      ansible.builtin.command: rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+      tags: plugins
+
+    - name: Setup RabbitMQ Cookie
+      ansible.builtin.copy:
+        content: "Some Secret Cookie"
+        dest: /var/lib/rabbitmq/.erlang.cookie
+        mode: "0400"
+        owner: root
+        group: root
+      tags: cookie
+
+    - name: Enable RabbitMQ AWS Peer Discovery
+      community.rabbitmq.rabbitmq_plugin:
+        names: rabbitmq_peer_discovery_aws
+        state: enabled
+        broker_state: offline
+        new_only: true
+      tags: plugins
+
+    - name: Install and Enable the RabbitMQ plugins
+      community.rabbitmq.rabbitmq_plugin:
+        names: rabbitmq_management,rabbitmq_prometheus,rabbitmq_consistent_hash_exchange,rabbitmq_shovel,rabbitmq_shovel_management
+        state: enabled
+        broker_state: offline
+        new_only: true
+      tags: plugins

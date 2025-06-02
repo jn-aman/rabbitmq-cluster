@@ -1,0 +1,22 @@
+{
+  "name": "rabbitmq-metrics-lambda",
+  "version": "1.0.0",
+  "main": "dist/handler.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "copy-node-modules": "cp -r node_modules dist/node_modules",
+    "prepare": "yarn run clean && yarn run build && yarn run copy-node-modules"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.x",
+    "@aws-sdk/client-secrets-manager": "^3.x",
+    "axios": "^1.x",
+    "aws-lambda": "1.0.7"
+  },
+  "devDependencies": {
+    "typescript": "^5.x",
+    "@types/node": "22.15.21",
+    "@types/aws-lambda": "^8.x"
+  }
+}

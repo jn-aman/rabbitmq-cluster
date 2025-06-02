@@ -1,0 +1,12 @@
+node_modules/
+dist/
+# Logs
+logs
+npm-debug.log*
+# Runtime data
+pids
+node_modules
+.terraform
+dist.zip
+terraform.tfstate*
+.DS_store
