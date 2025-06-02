@@ -1,5 +1,3 @@
-/* eslint-disable functional/no-loop-statement */
-/* eslint-disable functional/immutable-data */
 import axios from "axios";
 import CloudWatch from "@aws-sdk/client-cloudwatch";
 
@@ -85,7 +83,6 @@ export const getAllQueuesGroupByVhost = async (
             const readyMessages = queue.messages_ready || 0;
             const messages = queue.messages || 0;
 
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (!(vhostName in vhostQueues)) {
                 vhostQueues[vhostName] = {};
             }
